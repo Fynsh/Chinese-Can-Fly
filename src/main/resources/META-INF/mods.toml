@@ -1,0 +1,23 @@
+modLoader="javafml"
+loaderVersion="[47,)"
+license="MIT"
+
+[[mods]]
+modId="ccf"
+version="1.0.0"
+displayName="Chinese Can Fly"
+description='''仅客户端模组。检测到玩家使用中文(zh_cn/zh_tw)时，可通过双击跳跃键像创造模式一样飞行。注册命令 /ccf <bool> 控制启用/禁用。'''
+
+[[dependencies.ccf]]
+modId="forge"
+mandatory=true
+versionRange="[47.4.10,)"
+ordering="NONE"
+side="CLIENT"
+
+[[dependencies.ccf]]
+modId="minecraft"
+mandatory=true
+versionRange="[1.20.1,1.21)"
+ordering="NONE"
+side="CLIENT"
