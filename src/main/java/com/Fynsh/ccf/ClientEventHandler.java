@@ -1,11 +1,8 @@
 package com.Fynsh.ccf;
 
-import com.mojang.brigadier.arguments.BoolArgumentType;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.resources.language.LanguageManager;
-import net.minecraft.commands.Commands;
-import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Abilities;
@@ -14,7 +11,6 @@ import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.ClientPlayerNetworkEvent;
 import net.minecraftforge.client.event.InputEvent;
-import net.minecraftforge.client.event.RegisterClientCommandsEvent;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -27,7 +23,6 @@ import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Properties;
-import java.util.Set;
 
 @Mod.EventBusSubscriber(modid = CCFMod.MODID, value = Dist.CLIENT)
 public class ClientEventHandler {
@@ -36,10 +31,6 @@ public class ClientEventHandler {
     private static final long GRANT_GRACE_MS = 300L;
     private static long lastJumpPressMs = -10000L;
     private static long lastGrantMs = -10000L;
-
-    private static final Set<String> CHINESE_LANGS = Set.of(
-            "zh_cn", "zh_tw", "zh_hk", "lzh"
-    );
 
     private static boolean modFlight = false;
     private static boolean pendingRestore = false;
@@ -55,7 +46,7 @@ public class ClientEventHandler {
     private static boolean isChinese() {
         LanguageManager lm = Minecraft.getInstance().getLanguageManager();
         if (lm == null) return false;
-        return CHINESE_LANGS.contains(lm.getSelected());
+        return CCFConfig.isChinese(lm.getSelected());
     }
 
     private static boolean isSurvivalOrAdventure(GameType t) {
@@ -65,7 +56,7 @@ public class ClientEventHandler {
     private static boolean canActivate() {
         Minecraft mc = Minecraft.getInstance();
         if (mc.gameMode == null) return false;
-        return CCFMod.enabled && isChinese()
+        return CCFMod.flightEnabled && isChinese()
                 && isSurvivalOrAdventure(mc.gameMode.getPlayerMode());
     }
 
@@ -280,23 +271,6 @@ public class ClientEventHandler {
     public static void revokeFlight() {
         LocalPlayer p = Minecraft.getInstance().player;
         if (p != null && modFlight) revoke(p);
-    }
-
-    // ==================== 命令 ====================
-
-    @SubscribeEvent
-    public static void onRegisterClientCommands(RegisterClientCommandsEvent event) {
-        event.getDispatcher().register(
-                Commands.literal("ccf")
-                        .then(Commands.argument("value", BoolArgumentType.bool())
-                                .executes(ctx -> {
-                                    boolean v = BoolArgumentType.getBool(ctx, "value");
-                                    CCFMod.enabled = v;
-                                    if (!v) revokeFlight();
-                                    ctx.getSource().sendSuccess(
-                                            () -> Component.literal("[CCF] " + (v ? "启用" : "禁用")), false);
-                                    return 1;
-                                })));
     }
 
     // ==================== 登录 / 重生 ====================

@@ -4,9 +4,11 @@ license="MIT"
 
 [[mods]]
 modId="ccf"
-version="1.0.0"
-displayName="Chinese Can Fly"
-description='''仅客户端模组。检测到玩家使用中文(zh_cn/zh_tw)时，可通过双击跳跃键像创造模式一样飞行。注册命令 /ccf <bool> 控制启用/禁用。'''
+version="${mod_version}"
+displayName="${mod_name}"
+logoFile="logo.png"
+logoBlur=false
+description='''${mod_description}'''
 
 [[dependencies.ccf]]
 modId="forge"

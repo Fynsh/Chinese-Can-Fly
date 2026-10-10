@@ -1,0 +1,17 @@
+{
+  "ccf.command.flight.enabled": "[CCF] Flight enabled",
+  "ccf.command.flight.disabled": "[CCF] Flight disabled",
+  "ccf.command.follow.enabled": "[CCF] Item-follow enabled",
+  "ccf.command.follow.disabled": "[CCF] Item-follow disabled",
+  "ccf.command.following_time.set": "[CCF] Following time set to %s ticks",
+  "ccf.command.langs.add.success": "[CCF] Added language %s",
+  "ccf.command.langs.add.exists": "[CCF] Language %s already exists, unchanged",
+  "ccf.command.langs.addall.success": "[CCF] Cleared the list and wrote \"%s\"; isChinese now returns true for all languages",
+  "ccf.command.langs.remove.success": "[CCF] Removed language %s",
+  "ccf.command.langs.remove.missing": "[CCF] Language %s not found, unchanged",
+  "ccf.command.langs.removeall.success": "[CCF] Removed all languages; the language list is now empty",
+  "ccf.command.langs.replace.success": "[CCF] Replaced %s with %s",
+  "ccf.command.langs.replace.missing": "[CCF] Language %s not found in config; cannot replace",
+  "ccf.command.langs.replaceall.success": "[CCF] Replaced the list with only %s",
+  "ccf.command.config.not_loaded": "[CCF] Config not loaded yet; cannot modify the language list"
+}

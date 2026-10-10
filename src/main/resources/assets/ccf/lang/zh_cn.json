@@ -1,0 +1,17 @@
+{
+  "ccf.command.flight.enabled": "[CCF] 飞行功能已启用",
+  "ccf.command.flight.disabled": "[CCF] 飞行功能已禁用",
+  "ccf.command.follow.enabled": "[CCF] 掉落物功能已启用",
+  "ccf.command.follow.disabled": "[CCF] 掉落物功能已禁用",
+  "ccf.command.following_time.set": "[CCF] 跟随时间设置为 %s tick",
+  "ccf.command.langs.add.success": "[CCF] 已添加语言 %s",
+  "ccf.command.langs.add.exists": "[CCF] 语言 %s 已存在，未做修改",
+  "ccf.command.langs.addall.success": "[CCF] 已清空语言列表并写入 \"%s\"，isChinese 将对所有语言返回 true",
+  "ccf.command.langs.remove.success": "[CCF] 已移除语言 %s",
+  "ccf.command.langs.remove.missing": "[CCF] 语言 %s 不存在，未做修改",
+  "ccf.command.langs.removeall.success": "[CCF] 已移除所有语言，语言列表现在为空",
+  "ccf.command.langs.replace.success": "[CCF] 已将 %s 替换为 %s",
+  "ccf.command.langs.replace.missing": "[CCF] 语言 %s 不存在于配置中，无法替换",
+  "ccf.command.langs.replaceall.success": "[CCF] 已将语言列表替换为仅有 %s",
+  "ccf.command.config.not_loaded": "[CCF] 配置尚未加载，无法修改语言列表"
+}
