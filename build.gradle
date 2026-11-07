@@ -17,11 +17,32 @@ java.toolchain.languageVersion = JavaLanguageVersion.of(21)
 // NeoForged 官方 Maven 在国内经常不可达；Stellardrift 镜像了完整的 NeoForged Maven
 // （包括 NeoForge、NeoForm、neoform-runtime、NeoGradle 等），因此优先使用它。
 repositories {
+    // 本地仓库包含为 1.21.1 生成的 minecraft-dependencies BOM。
+    // 该 BOM 原本只发布在不可达的 maven.neoforged.net/mojang-meta。
+    maven {
+        name = 'Local NeoForm BOM'
+        url = uri('local-repo')
+    }
+    // EngineHub 公共镜像可补齐 Stellardrift 未镜像的 NeoForm 产物
+    // （例如 neoform-1.21.1-20240808.144430.zip）。
+    maven {
+        name = 'EngineHub Mirror'
+        url = 'https://maven.enginehub.org/repo/'
+    }
     maven {
         name = 'Stellardrift NeoForged Mirror'
         url = 'https://repo.stellardrift.ca/maven/internal'
     }
     mavenCentral()
+}
+
+dependencies {
+    // NFRT 在 recompile 阶段需要 checker-qual；它默认从不可达的
+    // maven.neoforged.net 下载。这里让 Gradle 先从 Maven Central 取到，
+    // 再通过 neoFormRuntimeExternalTools 的 artifact manifest 提供给 NFRT。
+    add('neoFormRuntimeExternalTools', 'org.checkerframework:checker-qual:3.33.0')
+    add('neoFormRuntimeExternalTools', 'com.google.errorprone:error_prone_annotations:2.18.0')
+    add('neoFormRuntimeExternalTools', 'com.google.j2objc:j2objc-annotations:2.8')
 }
 
 neoForge {

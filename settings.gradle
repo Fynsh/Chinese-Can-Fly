@@ -8,4 +8,25 @@ plugins {
     id 'org.gradle.toolchains.foojay-resolver-convention' version '1.0.0'
 }
 
+// 统一走可达镜像，避免 Gradle 回退到 maven.neoforged.net 时长时间超时。
+// EngineHub 补齐 Stellardrift 缺失的 NeoForm 产物。
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
+    repositories {
+        maven {
+            name = 'Local NeoForm BOM'
+            url = new File(settingsDir, 'local-repo').toURI()
+        }
+        maven {
+            name = 'EngineHub Mirror'
+            url = uri('https://maven.enginehub.org/repo/')
+        }
+        maven {
+            name = 'Stellardrift NeoForged Mirror'
+            url = uri('https://repo.stellardrift.ca/maven/internal')
+        }
+        mavenCentral()
+    }
+}
+
 rootProject.name = "Chinese Can Fly"
