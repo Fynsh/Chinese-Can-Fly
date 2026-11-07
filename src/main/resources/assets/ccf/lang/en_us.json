@@ -1,8 +1,8 @@
 {
-  "ccf.command.flight.enabled": "[CCF] Flight enabled",
-  "ccf.command.flight.disabled": "[CCF] Flight disabled",
-  "ccf.command.follow.enabled": "[CCF] Item-follow enabled",
-  "ccf.command.follow.disabled": "[CCF] Item-follow disabled",
+  "ccf.command.flight.enabled": "[CCF] Flight enabled for this save",
+  "ccf.command.flight.disabled": "[CCF] Flight disabled for this save",
+  "ccf.command.follow.enabled": "[CCF] Item-follow enabled for this save",
+  "ccf.command.follow.disabled": "[CCF] Item-follow disabled for this save",
   "ccf.command.following_time.set": "[CCF] Following time set to %s ticks",
   "ccf.command.langs.add.success": "[CCF] Added language %s",
   "ccf.command.langs.add.exists": "[CCF] Language %s already exists, unchanged",

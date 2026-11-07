@@ -1,8 +1,8 @@
 {
-  "ccf.command.flight.enabled": "[CCF] 飞行功能已启用",
-  "ccf.command.flight.disabled": "[CCF] 飞行功能已禁用",
-  "ccf.command.follow.enabled": "[CCF] 掉落物功能已启用",
-  "ccf.command.follow.disabled": "[CCF] 掉落物功能已禁用",
+  "ccf.command.flight.enabled": "[CCF] 本存档飞行功能已启用",
+  "ccf.command.flight.disabled": "[CCF] 本存档飞行功能已禁用",
+  "ccf.command.follow.enabled": "[CCF] 本存档掉落物功能已启用",
+  "ccf.command.follow.disabled": "[CCF] 本存档掉落物功能已禁用",
   "ccf.command.following_time.set": "[CCF] 跟随时间设置为 %s tick",
   "ccf.command.langs.add.success": "[CCF] 已添加语言 %s",
   "ccf.command.langs.add.exists": "[CCF] 语言 %s 已存在，未做修改",

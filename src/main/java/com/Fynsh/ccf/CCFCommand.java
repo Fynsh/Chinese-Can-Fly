@@ -15,94 +15,110 @@ import net.minecraftforge.fml.common.Mod;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * 客户端指令 {@code /ccf}。
+ *
+ * <p>通过 {@link RegisterClientCommandsEvent} 注册，只存在于客户端，
+ * 因此这些指令只对单人/本地集成服务器有意义。</p>
+ *
+ * <p>{@code /ccf flight} 与 {@code /ccf if_follow} 的开关状态会写入当前存档的
+ * {@code ccf/state.properties}，不同存档之间互不影响。</p>
+ */
 @Mod.EventBusSubscriber(modid = CCFMod.MODID, value = Dist.CLIENT)
-public class CCFCommand {
+public final class CCFCommand {
+
+    private CCFCommand() {
+    }
 
     @SubscribeEvent
     public static void onRegisterClientCommands(RegisterClientCommandsEvent event) {
         event.getDispatcher().register(
                 Commands.literal("ccf")
-                        // ccf flight <bool>
-                        .then(Commands.literal("flight")
-                                .then(Commands.argument("value", BoolArgumentType.bool())
-                                        .executes(ctx -> {
-                                            boolean v = BoolArgumentType.getBool(ctx, "value");
-                                            CCFMod.flightEnabled = v;
-                                            if (!v) {
-                                                ClientEventHandler.revokeFlight();
-                                            }
-                                            ctx.getSource().sendSuccess(
-                                                    () -> Component.translatable(
-                                                            v ? "ccf.command.flight.enabled"
-                                                                    : "ccf.command.flight.disabled"),
-                                                    false);
-                                            return 1;
-                                        })))
-
-                        // ccf if_follow <bool>
-                        .then(Commands.literal("if_follow")
-                                .then(Commands.argument("value", BoolArgumentType.bool())
-                                        .executes(ctx -> {
-                                            boolean v = BoolArgumentType.getBool(ctx, "value");
-                                            CCFMod.followEnabled = v;
-                                            ctx.getSource().sendSuccess(
-                                                    () -> Component.translatable(
-                                                            v ? "ccf.command.follow.enabled"
-                                                                    : "ccf.command.follow.disabled"),
-                                                    false);
-                                            return 1;
-                                        })))
-
-                        // ccf following_time <ticks>
-                        .then(Commands.literal("following_time")
-                                .then(Commands.argument("ticks", IntegerArgumentType.integer(0))
-                                        .executes(ctx -> {
-                                            int ticks = IntegerArgumentType.getInteger(ctx, "ticks");
-                                            CCFConfig.setFollowingTime(ticks);
-                                            ctx.getSource().sendSuccess(
-                                                    () -> Component.translatable(
-                                                            "ccf.command.following_time.set", ticks),
-                                                    false);
-                                            return 1;
-                                        })))
-
-                        // ccf langs ...
+                        .then(flight())
+                        .then(ifFollow())
+                        .then(followingTime())
                         .then(Commands.literal("langs")
-                                .then(buildAdd())
-                                .then(buildAddAll())
-                                .then(buildRemove())
-                                .then(buildRemoveAll())
-                                .then(buildReplace())
-                                .then(buildReplaceAll()))
+                                .then(addLanguage())
+                                .then(addAllLanguages())
+                                .then(removeLanguage())
+                                .then(removeAllLanguages())
+                                .then(replaceLanguage())
+                                .then(replaceAllLanguages()))
         );
+    }
+
+    // ============================================================
+    //  /ccf flight <bool>
+    // ============================================================
+    private static LiteralArgumentBuilder<CommandSourceStack> flight() {
+        return Commands.literal("flight")
+                .then(Commands.argument("value", BoolArgumentType.bool())
+                        .executes(context -> {
+                            boolean enabled = BoolArgumentType.getBool(context, "value");
+                            CCFWorldState.ensureLoaded();
+                            CCFMod.flightEnabled = enabled;
+                            CCFWorldState.save();
+                            if (!enabled) {
+                                ClientEventHandler.revokeFlight();
+                            }
+                            success(context.getSource(),
+                                    enabled ? "ccf.command.flight.enabled" : "ccf.command.flight.disabled");
+                            return 1;
+                        }));
+    }
+
+    // ============================================================
+    //  /ccf if_follow <bool>
+    // ============================================================
+    private static LiteralArgumentBuilder<CommandSourceStack> ifFollow() {
+        return Commands.literal("if_follow")
+                .then(Commands.argument("value", BoolArgumentType.bool())
+                        .executes(context -> {
+                            boolean enabled = BoolArgumentType.getBool(context, "value");
+                            CCFWorldState.ensureLoaded();
+                            CCFMod.followEnabled = enabled;
+                            CCFWorldState.save();
+                            success(context.getSource(),
+                                    enabled ? "ccf.command.follow.enabled" : "ccf.command.follow.disabled");
+                            return 1;
+                        }));
+    }
+
+    // ============================================================
+    //  /ccf following_time <ticks>
+    // ============================================================
+    private static LiteralArgumentBuilder<CommandSourceStack> followingTime() {
+        return Commands.literal("following_time")
+                .then(Commands.argument("ticks", IntegerArgumentType.integer(0))
+                        .executes(context -> {
+                            int ticks = IntegerArgumentType.getInteger(context, "ticks");
+                            if (!CCFConfig.setFollowingTime(ticks)) {
+                                configNotLoaded(context.getSource());
+                                return 0;
+                            }
+                            success(context.getSource(), "ccf.command.following_time.set", ticks);
+                            return 1;
+                        }));
     }
 
     // ============================================================
     //  /ccf langs add <lang>
     // ============================================================
-    private static LiteralArgumentBuilder<CommandSourceStack> buildAdd() {
+    private static LiteralArgumentBuilder<CommandSourceStack> addLanguage() {
         return Commands.literal("add")
                 .then(Commands.argument("lang", StringArgumentType.word())
-                        .executes(ctx -> {
-                            String lang = StringArgumentType.getString(ctx, "lang");
-                            List<String> langs = CCFConfig.getLanguages();
-                            if (langs.contains(lang)) {
-                                ctx.getSource().sendSuccess(
-                                        () -> Component.translatable(
-                                                "ccf.command.langs.add.exists", lang),
-                                        false);
+                        .executes(context -> {
+                            String language = StringArgumentType.getString(context, "lang");
+                            List<String> languages = CCFConfig.getLanguages();
+                            if (languages.contains(language)) {
+                                success(context.getSource(), "ccf.command.langs.add.exists", language);
                                 return 0;
                             }
-                            langs.add(lang);
-                            if (!CCFConfig.setLanguages(langs)) {
-                                ctx.getSource().sendFailure(
-                                        Component.translatable("ccf.command.config.not_loaded"));
+                            languages.add(language);
+                            if (!applyLanguages(context.getSource(), languages)) {
                                 return 0;
                             }
-                            ctx.getSource().sendSuccess(
-                                    () -> Component.translatable(
-                                            "ccf.command.langs.add.success", lang),
-                                    false);
+                            success(context.getSource(), "ccf.command.langs.add.success", language);
                             return 1;
                         }));
     }
@@ -110,20 +126,15 @@ public class CCFCommand {
     // ============================================================
     //  /ccf langs addAll
     // ============================================================
-    private static LiteralArgumentBuilder<CommandSourceStack> buildAddAll() {
+    private static LiteralArgumentBuilder<CommandSourceStack> addAllLanguages() {
         return Commands.literal("addAll")
-                .executes(ctx -> {
-                    List<String> langs = new ArrayList<>();
-                    langs.add(CCFConfig.ALL_LANGS);
-                    if (!CCFConfig.setLanguages(langs)) {
-                        ctx.getSource().sendFailure(
-                                Component.translatable("ccf.command.config.not_loaded"));
+                .executes(context -> {
+                    List<String> languages = new ArrayList<>();
+                    languages.add(CCFConfig.ALL_LANGUAGES);
+                    if (!applyLanguages(context.getSource(), languages)) {
                         return 0;
                     }
-                    ctx.getSource().sendSuccess(
-                            () -> Component.translatable(
-                                    "ccf.command.langs.addall.success", CCFConfig.ALL_LANGS),
-                            false);
+                    success(context.getSource(), "ccf.command.langs.addall.success", CCFConfig.ALL_LANGUAGES);
                     return 1;
                 });
     }
@@ -131,29 +142,20 @@ public class CCFCommand {
     // ============================================================
     //  /ccf langs remove <lang>
     // ============================================================
-    private static LiteralArgumentBuilder<CommandSourceStack> buildRemove() {
+    private static LiteralArgumentBuilder<CommandSourceStack> removeLanguage() {
         return Commands.literal("remove")
                 .then(Commands.argument("lang", StringArgumentType.word())
-                        .executes(ctx -> {
-                            String lang = StringArgumentType.getString(ctx, "lang");
-                            List<String> langs = CCFConfig.getLanguages();
-                            if (!langs.contains(lang)) {
-                                ctx.getSource().sendSuccess(
-                                        () -> Component.translatable(
-                                                "ccf.command.langs.remove.missing", lang),
-                                        false);
+                        .executes(context -> {
+                            String language = StringArgumentType.getString(context, "lang");
+                            List<String> languages = CCFConfig.getLanguages();
+                            if (!languages.remove(language)) {
+                                success(context.getSource(), "ccf.command.langs.remove.missing", language);
                                 return 0;
                             }
-                            langs.remove(lang);
-                            if (!CCFConfig.setLanguages(langs)) {
-                                ctx.getSource().sendFailure(
-                                        Component.translatable("ccf.command.config.not_loaded"));
+                            if (!applyLanguages(context.getSource(), languages)) {
                                 return 0;
                             }
-                            ctx.getSource().sendSuccess(
-                                    () -> Component.translatable(
-                                            "ccf.command.langs.remove.success", lang),
-                                    false);
+                            success(context.getSource(), "ccf.command.langs.remove.success", language);
                             return 1;
                         }));
     }
@@ -161,18 +163,13 @@ public class CCFCommand {
     // ============================================================
     //  /ccf langs removeAll
     // ============================================================
-    private static LiteralArgumentBuilder<CommandSourceStack> buildRemoveAll() {
+    private static LiteralArgumentBuilder<CommandSourceStack> removeAllLanguages() {
         return Commands.literal("removeAll")
-                .executes(ctx -> {
-                    if (!CCFConfig.setLanguages(new ArrayList<>())) {
-                        ctx.getSource().sendFailure(
-                                Component.translatable("ccf.command.config.not_loaded"));
+                .executes(context -> {
+                    if (!applyLanguages(context.getSource(), new ArrayList<>())) {
                         return 0;
                     }
-                    ctx.getSource().sendSuccess(
-                            () -> Component.translatable(
-                                    "ccf.command.langs.removeall.success"),
-                            false);
+                    success(context.getSource(), "ccf.command.langs.removeall.success");
                     return 1;
                 });
     }
@@ -180,31 +177,24 @@ public class CCFCommand {
     // ============================================================
     //  /ccf langs replace <lang1> <lang2>
     // ============================================================
-    private static LiteralArgumentBuilder<CommandSourceStack> buildReplace() {
+    private static LiteralArgumentBuilder<CommandSourceStack> replaceLanguage() {
         return Commands.literal("replace")
                 .then(Commands.argument("lang1", StringArgumentType.word())
                         .then(Commands.argument("lang2", StringArgumentType.word())
-                                .executes(ctx -> {
-                                    String lang1 = StringArgumentType.getString(ctx, "lang1");
-                                    String lang2 = StringArgumentType.getString(ctx, "lang2");
-                                    List<String> langs = CCFConfig.getLanguages();
-                                    if (!langs.contains(lang1)) {
-                                        ctx.getSource().sendFailure(
-                                                Component.translatable(
-                                                        "ccf.command.langs.replace.missing", lang1));
+                                .executes(context -> {
+                                    String source = StringArgumentType.getString(context, "lang1");
+                                    String target = StringArgumentType.getString(context, "lang2");
+                                    List<String> languages = CCFConfig.getLanguages();
+                                    int index = languages.indexOf(source);
+                                    if (index < 0) {
+                                        failure(context.getSource(), "ccf.command.langs.replace.missing", source);
                                         return 0;
                                     }
-                                    int idx = langs.indexOf(lang1);
-                                    langs.set(idx, lang2);
-                                    if (!CCFConfig.setLanguages(langs)) {
-                                        ctx.getSource().sendFailure(
-                                                Component.translatable("ccf.command.config.not_loaded"));
+                                    languages.set(index, target);
+                                    if (!applyLanguages(context.getSource(), languages)) {
                                         return 0;
                                     }
-                                    ctx.getSource().sendSuccess(
-                                            () -> Component.translatable(
-                                                    "ccf.command.langs.replace.success", lang1, lang2),
-                                            false);
+                                    success(context.getSource(), "ccf.command.langs.replace.success", source, target);
                                     return 1;
                                 })));
     }
@@ -212,23 +202,45 @@ public class CCFCommand {
     // ============================================================
     //  /ccf langs replaceAll <lang>
     // ============================================================
-    private static LiteralArgumentBuilder<CommandSourceStack> buildReplaceAll() {
+    private static LiteralArgumentBuilder<CommandSourceStack> replaceAllLanguages() {
         return Commands.literal("replaceAll")
                 .then(Commands.argument("lang", StringArgumentType.word())
-                        .executes(ctx -> {
-                            String lang = StringArgumentType.getString(ctx, "lang");
-                            List<String> langs = new ArrayList<>();
-                            langs.add(lang);
-                            if (!CCFConfig.setLanguages(langs)) {
-                                ctx.getSource().sendFailure(
-                                        Component.translatable("ccf.command.config.not_loaded"));
+                        .executes(context -> {
+                            String language = StringArgumentType.getString(context, "lang");
+                            List<String> languages = new ArrayList<>();
+                            languages.add(language);
+                            if (!applyLanguages(context.getSource(), languages)) {
                                 return 0;
                             }
-                            ctx.getSource().sendSuccess(
-                                    () -> Component.translatable(
-                                            "ccf.command.langs.replaceall.success", lang),
-                                    false);
+                            success(context.getSource(), "ccf.command.langs.replaceall.success", language);
                             return 1;
                         }));
+    }
+
+    // ============================================================
+    // 辅助方法
+    // ============================================================
+
+    /**
+     * 写回语言列表；配置尚未加载时发送统一的失败提示。
+     */
+    private static boolean applyLanguages(CommandSourceStack source, List<String> languages) {
+        if (CCFConfig.setLanguages(languages)) {
+            return true;
+        }
+        configNotLoaded(source);
+        return false;
+    }
+
+    private static void configNotLoaded(CommandSourceStack source) {
+        source.sendFailure(Component.translatable("ccf.command.config.not_loaded"));
+    }
+
+    private static void success(CommandSourceStack source, String translationKey, Object... arguments) {
+        source.sendSuccess(() -> Component.translatable(translationKey, arguments), false);
+    }
+
+    private static void failure(CommandSourceStack source, String translationKey, Object... arguments) {
+        source.sendFailure(Component.translatable(translationKey, arguments));
     }
 }
