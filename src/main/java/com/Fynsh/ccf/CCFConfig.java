@@ -1,96 +1,117 @@
 package com.Fynsh.ccf;
 
-import net.minecraftforge.common.ForgeConfigSpec;
-import net.minecraftforge.fml.config.ModConfig;
-import net.minecraftforge.fml.event.config.ModConfigEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
+import net.neoforged.fml.ModContainer;
+import net.neoforged.fml.config.ModConfig;
+import net.neoforged.neoforge.common.ModConfigSpec;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class CCFConfig {
+/**
+ * 客户端配置。
+ *
+ * <p>NeoForge 的配置写入使用 {@link ModConfigSpec#save()}，
+ * 不再需要像 Forge 1.20.1 那样额外持有 {@link ModConfig} 句柄。</p>
+ */
+public final class CCFConfig {
 
-    private static final ForgeConfigSpec.Builder BUILDER = new ForgeConfigSpec.Builder();
+    /** 默认被视为“中文系”的语言代码。 */
+    private static final List<String> DEFAULT_LANGUAGES = List.of("zh_cn", "zh_tw", "zh_hk", "lzh");
 
-    private static final List<String> DEFAULT_LANGS =
-            List.of("zh_cn", "zh_tw", "zh_hk", "lzh");
+    /** 特殊值：写入列表后，{@link #isChinese(String)} 对任意非 null 语言代码恒为 true。 */
+    public static final String ALL_LANGUAGES = "All";
 
-    /** 特殊值：写入列表后，isChinese 对任意非 null 语言代码恒为 true */
-    public static final String ALL_LANGS = "All";
+    private static final int DEFAULT_FOLLOWING_TIME = 600;
+    private static final double DEFAULT_MAX_FOLLOW_DISTANCE = 16.0D;
 
-    public static final ForgeConfigSpec.ConfigValue<List<? extends String>> CHINESE_LANGUAGES;
-
-    /** 跟随时间（单位：tick），默认 600 tick = 30 秒 */
-    public static final ForgeConfigSpec.IntValue FOLLOWING_TIME;
-
-    public static final ForgeConfigSpec SPEC;
-
-    private static ModConfig modConfig;
+    public static final ModConfigSpec.ConfigValue<List<? extends String>> CHINESE_LANGUAGES;
+    public static final ModConfigSpec.IntValue FOLLOWING_TIME;
+    public static final ModConfigSpec.DoubleValue MAX_FOLLOW_DISTANCE;
+    public static final ModConfigSpec SPEC;
 
     static {
-        BUILDER.comment(
+        ModConfigSpec.Builder builder = new ModConfigSpec.Builder();
+        builder.comment(
                 "Chinese Can Fly 配置",
                 "",
                 "chineseLanguages: 被视为\"中文系\"的语言代码列表。",
                 "  - 可包含具体语言代码（如 zh_cn、zh_tw）",
-                "  - 若包含 \"" + ALL_LANGS + "\"，则视为所有语言均为中文",
-                "followingTime: 背包满时挖掘掉落物跟随玩家的持续时间（tick）。"
+                "  - 若包含 \"" + ALL_LANGUAGES + "\"，则视为所有语言均为中文",
+                "followingTime: 背包满时挖掘掉落物跟随玩家的持续时间（tick）。",
+                "maxFollowDistance: 跟随掉落物的最大搜索距离（方块）。"
         );
 
-        CHINESE_LANGUAGES = BUILDER
+        CHINESE_LANGUAGES = builder
                 .comment("被视为中文的语言代码列表")
                 .defineListAllowEmpty(
                         List.of("chineseLanguages"),
-                        DEFAULT_LANGS,
+                        new ArrayList<>(DEFAULT_LANGUAGES),
                         o -> o instanceof String
                 );
 
-        FOLLOWING_TIME = BUILDER
+        FOLLOWING_TIME = builder
                 .comment("掉落物跟随玩家的持续时间（tick）")
-                .defineInRange("followingTime", 600, 0, Integer.MAX_VALUE);
+                .defineInRange("followingTime", DEFAULT_FOLLOWING_TIME, 0, Integer.MAX_VALUE);
 
-        SPEC = BUILDER.build();
+        MAX_FOLLOW_DISTANCE = builder
+                .comment("跟随掉落物的最大搜索距离（方块）")
+                .defineInRange("maxFollowDistance", DEFAULT_MAX_FOLLOW_DISTANCE, 1.0D, 128.0D);
+
+        SPEC = builder.build();
     }
 
-    public static void register(FMLJavaModLoadingContext context) {
-        context.registerConfig(ModConfig.Type.CLIENT, SPEC);
+    private CCFConfig() {
+    }
+
+    public static void register(ModContainer container) {
+        container.registerConfig(ModConfig.Type.CLIENT, SPEC);
     }
 
     /**
-     * 判断给定语言代码是否属于配置中定义的"中文系"。
-     * 若列表包含 {@link #ALL_LANGS}，则任何非 null 语言代码都视为中文。
+     * 判断给定语言代码是否属于配置中定义的“中文系”。
+     * 若列表包含 {@link #ALL_LANGUAGES}，则任何非 null 语言代码都视为中文。
      * 配置尚未加载时回退到默认列表。
+     *
+     * <p>该方法每客户端 tick 都会被调用，因此直接读取配置值，不做列表拷贝。</p>
      */
-    public static boolean isChinese(String langCode) {
-        if (langCode == null) return false;
-        List<String> langs = getLanguages();
-        if (langs.contains(ALL_LANGS)) return true;
-        return langs.contains(langCode);
+    public static boolean isChinese(String languageCode) {
+        if (languageCode == null) {
+            return false;
+        }
+
+        List<? extends String> languages;
+        try {
+            languages = CHINESE_LANGUAGES.get();
+        } catch (IllegalStateException e) {
+            languages = DEFAULT_LANGUAGES;
+        }
+
+        return languages != null
+                && (languages.contains(ALL_LANGUAGES) || languages.contains(languageCode));
     }
 
     /**
      * 读取当前语言列表。
-     * 返回的是可变副本，调用方可以自由修改而不影响 Forge 内部的缓存。
+     * 返回可变副本，调用方可以自由修改而不影响 NeoForge 内部的缓存。
      * 配置尚未加载时返回默认列表的副本。
      */
     public static List<String> getLanguages() {
         try {
-            List<? extends String> raw = CHINESE_LANGUAGES.get();
-            return new ArrayList<>(raw);
+            List<? extends String> languages = CHINESE_LANGUAGES.get();
+            return languages == null ? new ArrayList<>(DEFAULT_LANGUAGES) : new ArrayList<>(languages);
         } catch (IllegalStateException e) {
-            return new ArrayList<>(DEFAULT_LANGS);
+            return new ArrayList<>(DEFAULT_LANGUAGES);
         }
     }
 
     /**
-     * 覆盖写入语言列表并保存到 ccf-client.toml。
+     * 覆盖写入语言列表并保存到 {@code ccf-client.toml}。
      *
-     * @return 配置尚未加载时返回 false 且不做任何修改
+     * @return 配置尚未加载时返回 {@code false} 且不做任何修改
      */
-    public static boolean setLanguages(List<String> langs) {
+    public static boolean setLanguages(List<String> languages) {
         try {
-            CHINESE_LANGUAGES.set(langs);
+            CHINESE_LANGUAGES.set(List.copyOf(languages));
         } catch (IllegalStateException e) {
             return false;
         }
@@ -102,32 +123,36 @@ public class CCFConfig {
         try {
             return FOLLOWING_TIME.get();
         } catch (IllegalStateException e) {
-            return 600;
+            return DEFAULT_FOLLOWING_TIME;
         }
     }
 
-    public static void setFollowingTime(int ticks) {
-        FOLLOWING_TIME.set(ticks);
+    /**
+     * 设置跟随持续时间并保存配置。
+     *
+     * @return 配置尚未加载时返回 {@code false}
+     */
+    public static boolean setFollowingTime(int ticks) {
+        try {
+            FOLLOWING_TIME.set(ticks);
+        } catch (IllegalStateException e) {
+            return false;
+        }
         saveConfig();
+        return true;
+    }
+
+    public static double getMaxFollowDistance() {
+        try {
+            return MAX_FOLLOW_DISTANCE.get();
+        } catch (IllegalStateException e) {
+            return DEFAULT_MAX_FOLLOW_DISTANCE;
+        }
     }
 
     private static void saveConfig() {
-        if (modConfig != null) {
-            modConfig.save();
-        }
-    }
-
-    @SubscribeEvent
-    public static void onConfigLoad(ModConfigEvent.Loading event) {
-        if (event.getConfig().getModId().equals(CCFMod.MODID)) {
-            modConfig = event.getConfig();
-        }
-    }
-
-    @SubscribeEvent
-    public static void onConfigReload(ModConfigEvent.Reloading event) {
-        if (event.getConfig().getModId().equals(CCFMod.MODID)) {
-            modConfig = event.getConfig();
+        if (SPEC.isLoaded()) {
+            SPEC.save();
         }
     }
 }
